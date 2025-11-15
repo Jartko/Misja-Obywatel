@@ -5,6 +5,11 @@ import javafx.scene.control.Button;
 import javafx.stage.Stage;
 import javafx.scene.Node;
 
+
+//Scena
+import game.GameScene;
+
+
 public class MenuController {
 
     @FXML private Button rozpocznijGreButton;
@@ -19,7 +24,10 @@ public class MenuController {
     }
 
     private void startGame(javafx.event.ActionEvent e) {
-        System.out.println("Start gry! — tu zmienimy scenę na lokal wyborczy");
+        Stage stage = (Stage) rozpocznijGreButton.getScene().getWindow();
+
+        GameScene gameScene = new GameScene();
+        gameScene.start(stage);
     }
 
     private void showScoreboard(javafx.event.ActionEvent e) {

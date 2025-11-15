@@ -3,6 +3,10 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+
+import game.GameScene;
+
+
 public class Main extends Application {
 
     @Override
@@ -14,8 +18,6 @@ public class Main extends Application {
         stage.setFullScreen(false);
         stage.show();
     }
-
-
     public static void main(String[] args) {
         launch();
     }

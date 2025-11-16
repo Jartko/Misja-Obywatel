@@ -24,27 +24,40 @@ public class GameScene {
 
     public void start(Stage stage) {
 
-        //Pobranie wymiarów okna z Main
         double width = stage.getWidth();
         double height = stage.getHeight();
 
         root = new Pane();
         root.setPrefSize(width, height);
 
-        //Tło pomieszczenia
+        // --- Tło ---
         Image background = new Image(getClass().getResourceAsStream("/images/room.png"));
         ImageView bgView = new ImageView(background);
         bgView.setFitWidth(width);
         bgView.setFitHeight(height);
         root.getChildren().add(bgView);
 
-        //Gracz
+        // --- Gracz ---
         Image playerImg = new Image(getClass().getResourceAsStream("/images/player.png"));
         player = new Player(playerImg, width / 2, height / 2);
         root.getChildren().add(player.getSprite());
 
-        //Colliders
+        // --- Urna ---
+        Image urnaImg = new Image("images/urna_bezwieka.png");
+        ImageView urna = new ImageView(urnaImg);
+        urna.setFitWidth(120);
+        urna.setFitHeight(120);
+        urna.setX(100);
+        urna.setY(350);
+        root.getChildren().add(urna);
 
+        Rectangle urnaCollider = new Rectangle(100, 380, 100, 60);
+        urnaCollider.setOpacity(0.0);
+        colliders.add(urnaCollider);
+        root.getChildren().add(urnaCollider);
+        boolean[] urnaHighlighted = {false};
+
+        // --- Ściany ---
         Rectangle wallTop = new Rectangle(0, -20, width, 100);
         Rectangle wallBottom = new Rectangle(0, height-80, width, 80);
         Rectangle wallLeft = new Rectangle(-20, 0, 100, height);
@@ -53,21 +66,10 @@ public class GameScene {
         wallBottom.setOpacity(0);
         wallLeft.setOpacity(0);
         wallRight.setOpacity(0);
-        /*
-        wallTop.setOpacity(1);
-        wallBottom.setOpacity(1);
-        wallLeft.setOpacity(1);
-        wallRight.setOpacity(1);
-        */
-
-        colliders.add(wallTop);
-        colliders.add(wallBottom);
-        colliders.add(wallLeft);
-        colliders.add(wallRight);
-
+        colliders.addAll(List.of(wallTop, wallBottom, wallLeft, wallRight));
         root.getChildren().addAll(wallTop, wallBottom, wallLeft, wallRight);
 
-        // ====== SCENA ======
+        // --- Scena ---
         Scene scene = new Scene(root);
 
         scene.setOnKeyPressed(e -> pressedKeys.add(e.getCode()));
@@ -77,6 +79,27 @@ public class GameScene {
             @Override
             public void handle(long now) {
                 updateMovement();
+
+                // --- Podświetlenie urny ---
+                if (isNear(player.getSprite(), urna, 120)) {
+                    if (!urnaHighlighted[0]) {
+                        urna.setOpacity(1.0);
+                        urna.setStyle("-fx-effect: dropshadow(gaussian, yellow, 20, 0.5, 0, 0);");
+                        urnaHighlighted[0] = true;
+                    }
+
+                    // --- Wywołanie minigierki Urny
+                    if (pressedKeys.contains(KeyCode.E)) {
+                        System.out.println("Minigierka uruchomiona!");
+                    }
+
+                } else {
+                    if (urnaHighlighted[0]) {
+                        urna.setOpacity(0.85);
+                        urna.setStyle("-fx-effect: none;");
+                        urnaHighlighted[0] = false;
+                    }
+                }
             }
         };
         timer.start();
@@ -107,6 +130,18 @@ public class GameScene {
         }
 
         moveWithCollision(dx, dy);
+    }
+    private boolean isNear(ImageView player, ImageView obj, double distance) {
+        double px = player.getX() + player.getFitWidth() / 2;
+        double py = player.getY() + player.getFitHeight() / 2;
+
+        double ox = obj.getX() + obj.getFitWidth() / 2;
+        double oy = obj.getY() + obj.getFitHeight() / 2;
+
+        double dx = px - ox;
+        double dy = py - oy;
+
+        return Math.sqrt(dx*dx + dy*dy) < distance;
     }
 
     //Kolizje

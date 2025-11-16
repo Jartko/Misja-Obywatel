@@ -11,8 +11,8 @@ public class Player {
         sprite = new ImageView(image);
         sprite.setX(startX);
         sprite.setY(startY);
-        sprite.setFitWidth(50);  // szerokość postaci
-        sprite.setFitHeight(50); // wysokość postaci
+        sprite.setFitWidth(80);  // szerokość postaci
+        sprite.setFitHeight(80); // wysokość postaci
     }
 
     public ImageView getSprite() {

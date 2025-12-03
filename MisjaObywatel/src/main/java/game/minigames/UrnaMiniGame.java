@@ -85,7 +85,23 @@ public class UrnaMiniGame {
         enableDrag(sruba2);
         root.getChildren().add(sruba2);
 
+        // --- ghost Plomba ---
+        ImageView plombaGhost = new ImageView(new Image("/images/plomba.png"));
+        plombaGhost.setFitWidth(70);
+        plombaGhost.setFitHeight(70);
+        plombaGhost.setX(50);
+        plombaGhost.setY(150);
+        plombaGhost.setOpacity(0.35);
+        root.getChildren().add(plombaGhost);
 
+        // --- Plomba ---
+        ImageView plomba = new ImageView(new Image("/images/plomba.png"));
+        plomba.setFitWidth(70);
+        plomba.setFitHeight(70);
+        plomba.setX(width - 150);
+        plomba.setY(height - 150);
+        enableDrag(plomba);
+        root.getChildren().add(plomba);
 
         Scene scene = new Scene(root);
         stage.setScene(scene);

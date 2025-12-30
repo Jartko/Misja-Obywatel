@@ -1,0 +1,133 @@
+[
+  {
+    "id": 1,
+    "action": "ISSUE_CARD",
+    "hasCertificate": false,
+    "personImage": "npc_jan.png",
+    "document": {
+      "firstName": "Jan", "lastName": "KOWALSKI",
+      "pesel": "85021212345",
+      "birthDate": "12.02.1985",
+      "photo": "npc_jan.png"
+    },
+    "register": {
+      "isInRegister": true,
+      "gminaInfo": "FIGURUJE W SPISIE",
+      "firstName": "Jan", "lastName": "KOWALSKI",
+      "pesel": "85021212345",
+      "address": "ul. Polna 5/12",
+      "city": "Warszawa"
+    }
+  },
+  {
+    "id": 2,
+    "action": "REFUSE_NO_RIGHTS",
+    "hasCertificate": false,
+    "personImage": "npc_nastolatek.png",
+    "document": {
+      "firstName": "Kamil",
+      "lastName": "MŁODY",
+      "pesel": "10250512345",
+      "birthDate": "05.05.2010",
+      "photo": "npc_nastolatek.png"
+    },
+    "register": {
+      "isInRegister": false,
+      "gminaInfo": "BRAK PRAW (WIEK)",
+      "firstName": "Kamil", "lastName": "MŁODY", "pesel": "10250512345", "address": "ul. Polna 2", "city": "Warszawa"    }
+  },
+  {
+    "id": 3,
+    "action": "REFUSE_SPECIAL_REGISTER",
+    "hasCertificate": false,
+    "personImage": "npc_marek.png",
+    "document": {
+      "firstName": "Marek",
+      "lastName": "PACJENT",
+      "pesel": "70010188888",
+      "birthDate": "01.01.1970",
+      "photo": "npc_marek.png"
+    },
+    "register": {
+      "isInRegister": false,
+      "gminaInfo": "SPIS SPECJALNY: SZPITAL",
+      "firstName": "Marek", "lastName": "PACJENT", "pesel": "70010188888", "address": "ul. Szpitalna 1", "city": "Warszawa"
+    }
+  },
+  {
+    "id": 4,
+    "action": "REFUSE_WRONG_PRECINCT",
+    "hasCertificate": false,
+    "personImage": "npc_anna.png",
+    "document": {
+      "firstName": "Anna", "lastName": "OBCY", "pesel": "92010199999",
+      "birthDate": "01.01.1992",
+      "photo": "npc_anna.png"
+    },
+    "register": {
+      "isInRegister": false,
+      "gminaInfo": "BRAK W TYM OBWODZIE",
+      "firstName": "Anna", "lastName": "OBCY", "pesel": "92010199999", "address": "ul. Inna 4", "city": "Kraków"
+    }
+  },
+  {
+    "id": 5,
+    "action": "ADD_AND_ISSUE",
+    "hasCertificate": true,
+    "personImage": "npc_turysta.png",
+    "document": {
+      "firstName": "Tomasz", "lastName": "TURYSTA",
+      "pesel": "88080833333",
+      "birthDate": "08.08.1988",
+      "photo": "npc_turysta.png"
+    },
+    "register": {
+      "isInRegister": false,
+      "gminaInfo": "BRAK (MA ZAŚWIADCZENIE?)",
+      "firstName": "Tomasz", "lastName": "TURYSTA", "pesel": "88080833333",
+      "address": "ul. Wakacyjna 10",
+      "city": "Gdańsk"
+    }
+  },
+  {
+    "id": 6,
+    "action": "CALL_POLICE",
+    "hasCertificate": false,
+    "personImage": "npc_oszust.png",
+    "document": {
+      "firstName": "Piotr", "lastName": "ZŁY",
+      "pesel": "80010155555",
+      "birthDate": "01.01.1980",
+      "photo": "npc_fake_photo.png"
+    },
+    "register": {
+      "isInRegister": true,
+      "gminaInfo": "FIGURUJE W SPISIE",
+      "firstName": "Piotr",
+      "lastName": "ZŁY",
+      "pesel": "80010155555",
+      "address": "ul. Ciemna 1",
+      "city": "Warszawa"
+    }
+  },
+  {
+    "id": 7,
+    "action": "CALL_POLICE",
+    "hasCertificate": true,
+    "personImage": "npc_oszustka.png",
+    "document": {
+      "firstName": "Karolina", "lastName": "FAŁSZ",
+      "pesel": "00000000000",
+      "birthDate": "05.05.1995",
+      "photo": "npc_oszustka.png"
+    },
+    "register": {
+      "isInRegister": true,
+      "gminaInfo": "FIGURUJE W SPISIE",
+      "firstName": "Karolina", "lastName": "FAŁSZ",
+      "pesel": "95050511111",
+      "address": "ul. Prawdziwa 5",
+      "city": "Warszawa"
+    }
+  }
+]

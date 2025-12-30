@@ -3,12 +3,10 @@ package controllers;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.stage.Stage;
-import javafx.scene.Node;
 
-
-//Scena
+// Sceny
 import game.GameScene;
-
+import game.GlosowanieScene;
 
 public class MenuController {
 
@@ -26,8 +24,15 @@ public class MenuController {
     private void startGame(javafx.event.ActionEvent e) {
         Stage stage = (Stage) rozpocznijGreButton.getScene().getWindow();
 
-        GameScene gameScene = new GameScene();
-        gameScene.start(stage);
+        boolean debugEtap2 = true; // <-- ustaw na true jeśli chcesz zacząć od GlosowanieScene
+
+        if (debugEtap2) {
+            GlosowanieScene glosowanie = new GlosowanieScene();
+            glosowanie.start(stage);
+        } else {
+            GameScene gameScene = new GameScene();
+            gameScene.start(stage);
+        }
     }
 
     private void showScoreboard(javafx.event.ActionEvent e) {

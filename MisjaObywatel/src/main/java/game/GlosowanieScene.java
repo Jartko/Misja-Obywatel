@@ -1,5 +1,4 @@
 package game;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.geometry.Pos;
@@ -10,6 +9,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
@@ -27,19 +27,24 @@ import java.util.Comparator;
 import java.util.List;
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
+import javafx.animation.FadeTransition;
+import javafx.animation.Animation;
+import javafx.animation.TranslateTransition;
+import javafx.animation.Interpolator;
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
 
 public class GlosowanieScene {
 
     public static class VoterData {
         public int id;
-        public String action; // Typ akcji np. "ISSUE_CARD"
+        public String action;
         public boolean hasCertificate;
         public String personImage;
         public DocumentObj document;
         public RegisterObj register;
         public VoterData() {}
     }
-
     public static class DocumentObj {
         public String firstName;
         public String lastName;
@@ -48,7 +53,6 @@ public class GlosowanieScene {
         public String photo;
         public DocumentObj() {}
     }
-
     public static class RegisterObj {
         public boolean isInRegister;
         public String gminaInfo;
@@ -58,9 +62,10 @@ public class GlosowanieScene {
         public String address;
         public String city;
         public boolean hasVoted;
-        public RegisterObj() {}
-    }
 
+        public RegisterObj() {
+        }
+    }
     public static class TabletEntry {
         String fullAddress;
         String fullName;
@@ -78,6 +83,33 @@ public class GlosowanieScene {
             this.signedByPlayer = false;
         }
     }
+    public static class PlayerActions {
+        public boolean checkedID = false;
+        public boolean askedAddress = false;
+        public boolean checkedTablet = false;
+        public boolean calledGmina = false;
+        public boolean addedToRegister = false;
+
+        public void reset() {
+            checkedID = false;
+            askedAddress = false;
+            checkedTablet = false;
+            calledGmina = false;
+            addedToRegister = false;
+        }
+    }
+    public static class ScoreEntry {
+        public String voterName;
+        public int score;
+        public List<String> details;
+
+        public ScoreEntry(String name, int score, List<String> details) {
+            this.voterName = name;
+            this.score = score;
+            this.details = details;
+        }
+    }
+
     private Pane root;
     private Scene scene;
     private Stage primaryStage;
@@ -93,10 +125,14 @@ public class GlosowanieScene {
     private Text speechText;
     private TabletEntry selectedInTablet = null;
     private ImageView npcView;
-
     private StackPane certificateOnDesk;
-    private Text certName, certPesel, certAddress;
-    private Text certText;                 // Tekst na zaświadczeniu
+    private StackPane certOverlay;
+    private StackPane refusalOverlay;
+    private int currentVoterIndex = 0;
+    private Pane policeOverlay;
+    private PlayerActions currentActions = new PlayerActions();
+    private int totalScore = 0;
+    private List<ScoreEntry> dailyReport = new ArrayList<>();
 
     public void start(Stage stage) {
         this.primaryStage = stage;
@@ -108,26 +144,23 @@ public class GlosowanieScene {
         root.setPrefSize(width, height);
 
         // --- TŁO ---
-        try {
-            ImageView bg = new ImageView(new Image(getClass().getResourceAsStream("/images/background_room.jpg")));
-            bg.setFitWidth(width);
-            bg.setFitHeight(height);
-            root.getChildren().add(bg);
-        } catch (Exception e) {
-            root.getChildren().add(new Rectangle(width, height, Color.DARKGRAY));
-        }
+        ImageView bg = new ImageView(new Image(getClass().getResourceAsStream("/images/background_room.jpg")));
+        bg.setFitWidth(width);
+        bg.setFitHeight(height);
+        root.getChildren().add(bg);
+
         // --- WYBORCA ---
         npcView = new ImageView();
         npcView.setFitWidth(500);
         npcView.setFitHeight(700);
         npcView.setPreserveRatio(true);
         npcView.setLayoutX(230);
-        npcView.setLayoutY(145);
+        npcView.setLayoutY(155);
 
         // --- PRZEDMIOTY ---
         ImageView karta = createItem("/images/karta.png", 100, 130, 75, 585);
         karta.setRotate(15);
-        karta.setOnMouseClicked(e -> System.out.println("Kliknięto kartę"));
+        karta.setOnMouseClicked(e -> handleDecision("ISSUE_CARD"));
 
         ImageView tablet = createItem("/images/tablet.png", 220, 220, 400, 525);
         tablet.setOnMouseClicked(e -> openTablet());
@@ -145,20 +178,22 @@ public class GlosowanieScene {
         createPhoneUI(width, height);
         createTabletUI(width, height);
         createDowodUI(width, height);
-        createCertificateUI(100,300 );
-        root.getChildren().add(npcView);
-        root.getChildren().addAll(karta, tablet, phone, pen);
-        root.getChildren().addAll(phoneOverlay, tabletOverlay,dowodOverlay);
-        root.getChildren().add(certificateOnDesk);
+        createCertOverlay(width, height);
+        createCertificateOnDesk(250, 550);
+        createRefusalOverlay(width, height);
+        createPoliceOverlay(width, height);
 
+        root.getChildren().add(npcView);
+        root.getChildren().addAll(karta, tablet, phone, pen,certificateOnDesk);
+        root.getChildren().addAll(phoneOverlay, tabletOverlay,dowodOverlay,certOverlay,refusalOverlay,policeOverlay);
         updateVisuals();
         scene = new Scene(root, width, height);
         stage.setScene(scene);
         stage.setTitle("Misja Obywatel – Głosowanie");
         stage.show();
     }
-    //  --- LOGIKA VOTERS JSON ---
 
+    //  --- LOGIKA VOTERS ---
     private void loadVotersFromJson() {
         allVotersScenarios.clear();
         tabletDatabase.clear();
@@ -192,11 +227,55 @@ public class GlosowanieScene {
             e.printStackTrace();
             System.err.println("Błąd podczas parsowania voters.json!");
         }
-        currentVoter = allVotersScenarios.get(4);
+        currentVoter = allVotersScenarios.get(0);
     }
 
-    //  --- LOGIKA GRY ---
+    // --- Przedmioty i ich UI ---
+    private void createCertificateOnDesk(double x, double y) {
+        certificateOnDesk = new StackPane();
+        certificateOnDesk.setLayoutX(x);
+        certificateOnDesk.setLayoutY(y);
+        certificateOnDesk.setVisible(false);
 
+        ImageView icon = new ImageView();
+        try {
+            icon.setImage(new Image(getClass().getResourceAsStream("/images/zaswiadczenie.png")));
+        } catch (Exception e) {}
+        icon.setFitWidth(120);
+        icon.setFitHeight(160);
+
+
+        DropShadow glow = new DropShadow();
+        glow.setColor(Color.GOLD);
+        glow.setWidth(30);
+        glow.setHeight(30);
+
+        if (icon.getImage() != null) {
+            certificateOnDesk.getChildren().add(icon);
+        } else {
+            certificateOnDesk.getChildren().add(new Text("ZAŚWIADCZENIE"));
+        }
+        certificateOnDesk.setOnMouseClicked(e -> {
+            if (e.getButton() == MouseButton.PRIMARY) {
+                if (certOverlay != null) {
+                    certOverlay.setVisible(true);
+                    certOverlay.toFront();
+                }
+            }
+        });
+        certificateOnDesk.setOnMouseEntered(e -> {
+            if (icon.getImage() != null) icon.setEffect(glow);
+            certificateOnDesk.setScaleX(1.05);
+            certificateOnDesk.setScaleY(1.05);
+            certificateOnDesk.setCursor(javafx.scene.Cursor.HAND);
+        });
+
+        certificateOnDesk.setOnMouseExited(e -> {
+            if (icon.getImage() != null) icon.setEffect(null);
+            certificateOnDesk.setScaleX(1.0);
+            certificateOnDesk.setScaleY(1.0);
+        });
+    }
     private void handlePhysicalPenClick() {
         if (selectedInTablet == null) {
             System.out.println("Zaznacz osobę w spisie!");
@@ -206,21 +285,20 @@ public class GlosowanieScene {
             System.out.println("Tu już jest podpis.");
             return;
         }
-
         System.out.println("Podpisano: " + selectedInTablet.fullName);
         selectedInTablet.signedByPlayer = true;
+
+        if (currentVoter != null && selectedInTablet.linkedVoter == currentVoter) {
+            currentActions.checkedTablet = true;
+            System.out.println("LOG: Podpisano poprawną osobę.");
+        } else {
+            System.out.println("LOG: BŁĄD! Podpisano niewłaściwą osobę!");
+        }
 
         if (tabletOverlay.isVisible()) {
             refreshRegisterList();
         }
     }
-
-    private void handleIssueBallot() {
-        System.out.println("[AKCJA] Próba wydania karty...");
-    }
-
-    //  --- TABLET UI ---
-
     private void createTabletUI(double sceneW, double sceneH) {
         tabletOverlay = new StackPane();
         tabletOverlay.setPrefSize(sceneW, sceneH);
@@ -260,7 +338,6 @@ public class GlosowanieScene {
         tabletBody.getChildren().addAll(topBar, new Text(" "), tableHeader, scroll);
         tabletOverlay.getChildren().add(tabletBody);
     }
-
     private void refreshRegisterList() {
         listContentBox.getChildren().clear();
         for (TabletEntry entry : tabletDatabase) {
@@ -281,7 +358,6 @@ public class GlosowanieScene {
             listContentBox.getChildren().add(row);
         }
     }
-
     private HBox createRowUI(String address, String name, String pesel, String signText, boolean isHeader, TabletEntry entryRef) {
         HBox row = new HBox(10);
         row.setPadding(new javafx.geometry.Insets(8));
@@ -337,13 +413,6 @@ public class GlosowanieScene {
         }
         return row;
     }
-
-    private void openTablet() {
-        refreshRegisterList();
-        tabletOverlay.setVisible(true);
-    }
-    //      --- TELEFON UI ---
-
     private void createPhoneUI(double w, double h) {
         phoneOverlay = new StackPane();
         phoneOverlay.setPrefSize(w, h);
@@ -354,16 +423,16 @@ public class GlosowanieScene {
         mainContainer.setAlignment(Pos.CENTER);
         mainContainer.setPickOnBounds(false);
 
-        // --- TELEFON ---
+        // --- TŁO ---
         VBox phoneBody = new VBox(20);
         phoneBody.setMaxSize(300, 520);
         phoneBody.setAlignment(Pos.TOP_CENTER);
         phoneBody.setPadding(new javafx.geometry.Insets(25));
         phoneBody.setStyle("-fx-background-color: #34495e; -fx-background-radius: 40; -fx-border-color: #2c3e50; -fx-border-width: 8; -fx-effect: dropshadow(three-pass-box, black, 20, 0, 0, 10);");
 
-        // Ekran (Zmieniony na StackPane z zawijanym tekstem)
+        // --- EKRAN ---
         StackPane screen = new StackPane();
-        screen.setPrefSize(220, 60); // Trochę wyższy
+        screen.setPrefSize(220, 60);
         screen.setMaxWidth(220);
         screen.setStyle("-fx-background-color: #ecf0f1; -fx-border-color: #7f8c8d; -fx-border-width: 3; -fx-background-radius: 5;");
 
@@ -375,7 +444,7 @@ public class GlosowanieScene {
 
         screen.getChildren().add(phoneScreenText);
 
-        // Klawiatura
+        // --- Klawiatura ---
         Pane dialPane = new Pane();
         dialPane.setPrefSize(240, 240);
         dialPane.setMaxSize(240, 240);
@@ -425,45 +494,14 @@ public class GlosowanieScene {
         mainContainer.getChildren().addAll(phoneBody, note);
         phoneOverlay.getChildren().add(mainContainer);
     }
-
-    private void handleCall() {
-        String input = phoneScreenText.getText();
-
-        if (input.equals("111")) {
-
-            if (currentVoter != null && currentVoter.register != null) {
-                String info = currentVoter.register.gminaInfo;
-                if (info != null && !info.isEmpty()) {
-                    phoneScreenText.setText(info);
-                } else {
-                    if (currentVoter.register.isInRegister) {
-                        phoneScreenText.setText("FIGURUJE W SPISIE");
-                    } else {
-                        phoneScreenText.setText("BRAK W BAZIE");
-                    }
-                }
-            } else {
-                phoneScreenText.setText("BRAK DANYCH");
-            }
-        }
-        else if (input.equals("997")) {
-            phoneScreenText.setText("ZGŁOSZENIE PRZYJĘTE");
-        }
-        else {
-            phoneScreenText.setText("NIE MA TAKIEGO NUMERU");
-        }
-    }
-
     private Button createPhoneActionButton(String text, String colorHex) {
         Button b = new Button(text);
         b.setStyle("-fx-background-color: " + colorHex + "; -fx-text-fill: white; -fx-font-weight: bold;");
         return b;
     }
-
-    private void openPhone() { phoneScreenText.setText(""); phoneOverlay.setVisible(true); }
     private ImageView createItem(String path, double w, double h, double x, double y) {
         ImageView iv = new ImageView();
-        try { iv.setImage(new Image(getClass().getResourceAsStream(path))); } catch (Exception e) {}
+        iv.setImage(new Image(getClass().getResourceAsStream(path)));
         iv.setFitWidth(w); iv.setFitHeight(h);
         iv.setX(x); iv.setY(y);
         iv.setPickOnBounds(true);
@@ -473,13 +511,14 @@ public class GlosowanieScene {
         iv.setOnMouseExited(e -> iv.setEffect(null));
         return iv;
     }
-    // --- Przyciski ---
     private void createActionButtons(double x, double y) {
         VBox decisionPanel = new VBox(12);
         decisionPanel.setLayoutX(x); decisionPanel.setLayoutY(y);
         String style = "-fx-font-size: 14px; -fx-font-weight: bold; -fx-background-radius: 5; -fx-cursor: hand; -fx-pref-width: 200; -fx-pref-height: 40;";
         Button b1 = new Button("POPROŚ O DOKUMENT"); b1.setStyle(style + "-fx-background-color: #ecf0f1;");
         b1.setOnAction(e -> {
+            currentActions.checkedID = true;
+            System.out.println("LOG: Sprawdzono dowód.");
             if (currentVoter != null && currentVoter.document != null) {
                 dowodOverlay.setVisible(true);
             }
@@ -488,57 +527,18 @@ public class GlosowanieScene {
         b2.setOnAction(e -> handleAskAddress());
 
         Button b3 = new Button("ODMÓW GŁOSU"); b3.setStyle(style + "-fx-background-color: #e74c3c; -fx-text-fill: white;");
+        b3.setOnAction(e -> {
+            if (refusalOverlay != null) {
+                refusalOverlay.setVisible(true); // Pokaż okno
+                refusalOverlay.toFront();        // Daj na wierzch
+            } else {
+                System.out.println("BŁĄD: refusalOverlay nie został utworzony!");
+            }
+        });
 
         decisionPanel.getChildren().addAll(b1, b2, b3);
 
         root.getChildren().add(decisionPanel);
-    }
-    private void createCertificateUI(double x, double y) {
-        certificateOnDesk = new StackPane();
-        certificateOnDesk.setLayoutX(x);
-        certificateOnDesk.setLayoutY(y);
-        certificateOnDesk.setVisible(false); // Domyślnie ukryte
-
-        // Tło - plik graficzny (lub biały prostokąt, jeśli nie masz pliku)
-        ImageView bg = new ImageView();
-        bg.setImage(new Image(getClass().getResourceAsStream("/images/zaswiadczenie.png")));
-        Rectangle fallbackBg = new Rectangle(200, 280, Color.FLORALWHITE);
-        fallbackBg.setStroke(Color.GRAY);
-        fallbackBg.setEffect(new DropShadow(5, Color.gray(0.4)));
-
-        // Kontener na tekst
-        VBox textBox = new VBox(10);
-        textBox.setAlignment(Pos.TOP_LEFT);
-        textBox.setPadding(new javafx.geometry.Insets(60, 10, 10, 20)); // Margines od góry (pod nagłówek)
-
-        certName = new Text();
-        certName.setFont(Font.font("Courier New", FontWeight.BOLD, 14));
-
-        certPesel = new Text();
-        certPesel.setFont(Font.font("Courier New", 12));
-
-        certAddress = new Text();
-        certAddress.setFont(Font.font("Courier New", 11));
-        certAddress.setWrappingWidth(160);
-
-        textBox.getChildren().addAll(certName, certPesel, new Text(" "), certAddress);
-
-        if (bg.getImage() != null) {
-            certificateOnDesk.getChildren().add(bg);
-        } else {
-            certificateOnDesk.getChildren().add(fallbackBg);
-        }
-        certificateOnDesk.getChildren().add(textBox);
-
-        certificateOnDesk.setOnMouseEntered(e -> {
-            certificateOnDesk.setScaleX(1.5);
-            certificateOnDesk.setScaleY(1.5);
-            certificateOnDesk.toFront();
-        });
-        certificateOnDesk.setOnMouseExited(e -> {
-            certificateOnDesk.setScaleX(1.0);
-            certificateOnDesk.setScaleY(1.0);
-        });
     }
     private void createDowodUI(double w, double h) {
         dowodOverlay = new StackPane();
@@ -549,13 +549,11 @@ public class GlosowanieScene {
         Pane dowodBody = new Pane();
         dowodBody.setPrefSize(600, 380);
         dowodBody.setMaxSize(600, 380);
-
-        ImageView bg = new ImageView(
-                new Image(getClass().getResourceAsStream("/images/DowodOsobisty.png"))
-        );
+        // --- TŁO ---
+        ImageView bg = new ImageView( new Image(getClass().getResourceAsStream("/images/DowodOsobisty.png")));
         bg.setFitWidth(600);
         bg.setFitHeight(380);
-
+        // --- DANE ---
         Text tFirstName = new Text();
         Text tLastName  = new Text();
         Text tnationality = new Text();
@@ -571,7 +569,7 @@ public class GlosowanieScene {
         tBirth.setFont(fontSmall);
         tnationality.setFont(fontSmall);
         tSex.setFont(fontSmall);
-
+        // --- POZYCJA ---
         tFirstName.setLayoutX(220);
         tFirstName.setLayoutY(155);
         tLastName.setLayoutX(220);
@@ -632,21 +630,136 @@ public class GlosowanieScene {
             }
         });
     }
-    private void handleAskAddress() {
-        if (currentVoter == null) return;
+    private void createCertOverlay(double w, double h) {
+        certOverlay = new StackPane();
+        certOverlay.setPrefSize(w, h);
+        certOverlay.setStyle("-fx-background-color: rgba(0,0,0,0.6);");
+        certOverlay.setVisible(false);
 
-        String city = currentVoter.register.city;
-        String addr = currentVoter.register.address;
+        Pane certBody = new Pane();
+        certBody.setPrefSize(500, 700);
+        certBody.setMaxSize(500, 700);
 
-        String message;
-        if (addr != null && !addr.isEmpty()) {
-            message = "Mieszkam w: " + city + ",\nna ulicy " + addr;
-        } else {
-            message = "Yyy... dopiero się wprowadziłem, nie pamiętam adresu.";
-        }
+        // 1. TŁO
+        ImageView bg = new ImageView();
+        bg.setImage(new Image(getClass().getResourceAsStream("/images/zaswiadczenie.png")));
+        bg.setFitWidth(500);
+        bg.setFitHeight(700);
+        ImageView hologram = new ImageView();
+        hologram.setImage(new Image(getClass().getResourceAsStream("/images/hologram.png")));
+        hologram.setFitWidth(80);
+        hologram.setFitHeight(80);
+        hologram.setLayoutX(320);
+        hologram.setLayoutY(25);
+        hologram.setOpacity(0.5);
 
-        speak(message);
+        FadeTransition ft = new FadeTransition(Duration.seconds(1.5), hologram);
+        ft.setFromValue(0.4);
+        ft.setToValue(1);
+        ft.setCycleCount(Animation.INDEFINITE);
+        ft.setAutoReverse(true);
+        ft.play();
+        // --- Dane ---
+        Text tName    = new Text();
+        Text tSurname = new Text();
+        Text tPesel   = new Text();
+        Text tCity    = new Text();
+        Text tStreet  = new Text();
+        Font font = Font.font("Courier New", FontWeight.BOLD, 18);
+        tName.setFont(font); tSurname.setFont(font); tPesel.setFont(font);
+        tCity.setFont(font); tStreet.setFont(font);
+        // --- Pozycja ---
+        tName.setLayoutX(140);
+        tName.setLayoutY(335);
+        tSurname.setLayoutX(140);
+        tSurname.setLayoutY(355);
+        tPesel.setLayoutX(140);
+        tPesel.setLayoutY(375);
+        tCity.setLayoutX(140);
+        tCity.setLayoutY(445);
+        tStreet.setLayoutX(140);
+        tStreet.setLayoutY(470);
+        // --- Przycisk ---
+        Button btnAdd = new Button("DOPISZ DO SPISU");
+        btnAdd.setLayoutX(140);
+        btnAdd.setLayoutY(640);
+        btnAdd.setPrefWidth(200);
+        btnAdd.setPrefHeight(40);
+        btnAdd.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px; -fx-cursor: hand;");
+
+        btnAdd.setOnAction(e -> {
+            handleAddToRegister();
+            certOverlay.setVisible(false);
+        });
+
+        Button close = new Button("X");
+        close.setLayoutX(450);
+        close.setLayoutY(10);
+        close.setStyle("-fx-background-color: transparent; -fx-text-fill: red; -fx-font-weight: bold; -fx-font-size: 24; -fx-cursor: hand;");
+        close.setOnAction(e -> certOverlay.setVisible(false));
+        certBody.getChildren().addAll(bg, hologram, tName, tSurname, tPesel, tCity, tStreet, btnAdd, close);
+        certOverlay.getChildren().add(certBody);
+
+        certOverlay.visibleProperty().addListener((obs, oldV, newV) -> {
+            if (newV && currentVoter != null) {
+                tName.setText(currentVoter.document.firstName.toUpperCase());
+                tSurname.setText(currentVoter.document.lastName.toUpperCase());
+                tPesel.setText(currentVoter.document.pesel);
+                if (currentVoter.register != null) {
+                    tCity.setText(currentVoter.register.city);
+                    tStreet.setText(currentVoter.register.address);
+                }
+            }
+        });
     }
+    private void createRefusalOverlay(double w, double h) {
+        refusalOverlay = new StackPane();
+        refusalOverlay.setPrefSize(w, h);
+        refusalOverlay.setStyle("-fx-background-color: rgba(0,0,0,0.8);");
+        refusalOverlay.setVisible(false);
+        VBox box = new VBox(15);
+        box.setMaxSize(400, 350);
+        box.setAlignment(Pos.CENTER);
+        box.setStyle("-fx-background-color: #ecf0f1; -fx-padding: 20; -fx-background-radius: 10; -fx-border-color: #c0392b; -fx-border-width: 4;");
+        Text title = new Text("POWÓD ODMOWY");
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+        String btnStyle = "-fx-background-color: #34495e; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14; -fx-cursor: hand; -fx-pref-width: 300; -fx-pref-height: 40;";
+
+        Button bAge = new Button("NIEPEŁNOLETNI");
+        bAge.setStyle(btnStyle);
+        bAge.setOnAction(e -> {
+            refusalOverlay.setVisible(false);
+            handleDecision("REFUSE_NO_RIGHTS");
+        });
+
+        Button bSpecial = new Button("SPIS SPECJALNY (Szpital/Więzienie)");
+        bSpecial.setStyle(btnStyle);
+        bSpecial.setOnAction(e -> {
+            refusalOverlay.setVisible(false);
+            handleDecision("REFUSE_SPECIAL_REGISTER");
+        });
+
+        Button bDistrict = new Button("BŁĘDNY OBWÓD / ADRES");
+        bDistrict.setStyle(btnStyle);
+        bDistrict.setOnAction(e -> {
+            refusalOverlay.setVisible(false);
+            handleDecision("REFUSE_WRONG_PRECINCT");
+        });
+
+        // Anuluj
+        Button bCancel = new Button("ANULUJ (Wróć)");
+        bCancel.setStyle("-fx-background-color: #7f8c8d; -fx-text-fill: white; -fx-pref-width: 150;");
+        bCancel.setOnAction(e -> refusalOverlay.setVisible(false));
+
+        box.getChildren().addAll(title, new Region(), bAge, bSpecial, bDistrict, new Region(), bCancel);
+        refusalOverlay.getChildren().add(box);
+    }
+
+    // --- Open ---
+    private void openPhone() { phoneScreenText.setText(""); phoneOverlay.setVisible(true); }
+    private void openTablet() {refreshRegisterList();tabletOverlay.setVisible(true);}
+
+    // --- MOWA ---
     private void speak(String text) {
         speechText.setText(text);
         speechBubble.setVisible(true);
@@ -683,78 +796,328 @@ public class GlosowanieScene {
 
         root.getChildren().add(speechBubble);
     }
+    private void handleAskAddress() {
+        if (currentVoter == null) return;
+        currentActions.askedAddress = true;
+        System.out.println("LOG: Zapytano o adres.");
+        String city = currentVoter.register.city;
+        String addr = currentVoter.register.address;
+
+        String message;
+        if (addr != null && !addr.isEmpty()) {
+            message = "Mieszkam w: " + city + ",\nna " + addr;
+        } else {
+            message = "Yyy... dopiero się wprowadziłem, nie pamiętam adresu.";
+        }
+
+        speak(message);
+    }
+
     private void updateVisuals() {
         if (currentVoter == null) {
             if (dowodOverlay != null) dowodOverlay.setVisible(false);
+            if (certOverlay != null) certOverlay.setVisible(false);
             if (certificateOnDesk != null) certificateOnDesk.setVisible(false);
             if (npcView != null) npcView.setImage(null);
             return;
         }
+
+        // 2. Ładowanie obrazka NPC
         try {
             String imagePath = "/images/" + currentVoter.personImage;
             if (getClass().getResourceAsStream(imagePath) != null) {
                 npcView.setImage(new Image(getClass().getResourceAsStream(imagePath)));
             } else {
-                System.out.println("Nie znaleziono pliku: " + imagePath);
+                npcView.setImage(null);
             }
         } catch (Exception e) {
-            System.out.println("Błąd ładowania NPC: " + currentVoter.personImage);
             npcView.setImage(null);
         }
-
+        if (dowodOverlay != null) dowodOverlay.setVisible(false);
+        if (certOverlay != null) certOverlay.setVisible(false);
         if (certificateOnDesk != null) {
-            boolean maZaswiadczenie = currentVoter.hasCertificate;
-            certificateOnDesk.setVisible(maZaswiadczenie);
-
-            if (maZaswiadczenie) {
-                // Wypełniamy tekst danymi z JSON
-                // Imię/Nazwisko/PESEL bierzemy z sekcji 'document' (bo to jest na papierze)
-                String name = currentVoter.document.firstName + " " + currentVoter.document.lastName;
-                String pesel = currentVoter.document.pesel;
-
-                // Adres bierzemy z sekcji 'register' (tam w JSONie wpisaliśmy adres zamieszkania dla turysty)
-                String address = currentVoter.register.city + ", " + currentVoter.register.address;
-
-                if (certText != null) {
-                    certText.setText(
-                            "ZAŚWIADCZENIE\n" +
-                                    "O PRAWIE DO GŁOSOWANIA\n\n" +
-                                    name.toUpperCase() + "\n" +
-                                    "PESEL: " + pesel + "\n\n" +
-                                    "Adres zamieszkania:\n" + address
-                    );
-                }
+            certificateOnDesk.setVisible(false);
+        }
+        if (currentVoter.hasCertificate) {
+            if (certificateOnDesk != null) {
+                certificateOnDesk.setVisible(true);
             }
         }
     }
+
+    // --- POLICJA ---
+    private void createPoliceOverlay(double w, double h) {
+        policeOverlay = new StackPane();
+        policeOverlay.setPrefSize(w, h);
+        policeOverlay.setVisible(false);
+        policeOverlay.setMouseTransparent(true);
+    }
+    private void triggerPoliceAction() {
+        phoneOverlay.setVisible(false);
+        policeOverlay.setVisible(true);
+        System.out.println("POLICJA JEDZIE!");
+        Timeline lights = new Timeline(
+                new KeyFrame(Duration.ZERO, e ->
+                        policeOverlay.setStyle("-fx-background-color: rgba(255, 0, 0, 0.4);")),
+                new KeyFrame(Duration.seconds(0.15), e ->
+                        policeOverlay.setStyle("-fx-background-color: rgba(0, 0, 255, 0.4);")),
+                new KeyFrame(Duration.seconds(0.3), e -> {})
+        );
+        lights.setCycleCount(7);
+        handleDecision("CALL_POLICE");
+        lights.setOnFinished(e -> {
+            policeOverlay.setVisible(false);
+        });
+
+        lights.play();
+    }
+
+    // --- PUNKTACJA i DECYZJE ---
+    private void showEndGameSummary() {
+        root.getChildren().forEach(node -> node.setVisible(false));
+        StackPane summaryOverlay = new StackPane();
+        summaryOverlay.setPrefSize(root.getWidth(), root.getHeight());
+        summaryOverlay.setStyle("-fx-background-color: rgba(44, 62, 80, 0.95);");
+
+        VBox content = new VBox(20);
+        content.setAlignment(Pos.CENTER);
+        content.setMaxSize(800, 600);
+
+        Text title = new Text("RAPORT KOŃCOWY");
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 36));
+        title.setFill(Color.WHITE);
+
+        Text scoreText = new Text("CAŁKOWITY WYNIK: " + totalScore + " pkt");
+        scoreText.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+        scoreText.setFill(Color.GOLD);
+
+
+        VBox list = new VBox(10);
+        list.setStyle("-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 5;");
+
+        ScrollPane scroll = new ScrollPane(list);
+        scroll.setFitToWidth(true);
+        scroll.setPrefHeight(400);
+
+        for (ScoreEntry entry : dailyReport) {
+            VBox entryBox = new VBox(5);
+            entryBox.setStyle("-fx-border-color: #bdc3c7; -fx-border-width: 0 0 1 0; -fx-padding: 5;");
+
+            HBox header = new HBox(10);
+            Text tName = new Text(entry.voterName);
+            tName.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+
+            Text tScore = new Text(String.valueOf(entry.score));
+            tScore.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+            tScore.setFill(entry.score > 0 ? Color.GREEN : Color.RED);
+
+            Region r = new Region(); HBox.setHgrow(r, Priority.ALWAYS);
+            header.getChildren().addAll(tName, r, tScore);
+
+            entryBox.getChildren().add(header);
+
+            // Detale (powody punktów)
+            for (String detail : entry.details) {
+                Text tDet = new Text(" • " + detail);
+                tDet.setFont(Font.font("Arial", 12));
+                tDet.setFill(Color.DARKGRAY);
+                entryBox.getChildren().add(tDet);
+            }
+            list.getChildren().add(entryBox);
+        }
+        Button exitBtn = new Button("ZAKOŃCZ PRACĘ");
+        exitBtn.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18;");
+        exitBtn.setOnAction(e -> primaryStage.close());
+
+        content.getChildren().addAll(title, scoreText, scroll, exitBtn);
+        summaryOverlay.getChildren().add(content);
+
+        root.getChildren().add(summaryOverlay);
+    }
+    private void nextVoter() {
+        if (dowodOverlay != null) dowodOverlay.setVisible(false);
+        if (certificateOnDesk != null) certificateOnDesk.setVisible(false);
+        if (certOverlay != null) certOverlay.setVisible(false);
+        TranslateTransition leave = new TranslateTransition(Duration.seconds(0.6), npcView);
+        leave.setToX(-1000);
+        leave.setInterpolator(Interpolator.EASE_IN);
+
+        leave.setOnFinished(e -> {
+            currentVoterIndex++;
+            currentActions.reset();
+            if (currentVoterIndex < allVotersScenarios.size()) {
+                currentVoter = allVotersScenarios.get(currentVoterIndex);
+                selectedInTablet = null;
+                if (phoneScreenText != null) phoneScreenText.setText("");
+                updateVisuals();
+                if (certificateOnDesk != null) certificateOnDesk.setVisible(false);
+                npcView.setTranslateX(1000);
+                TranslateTransition enter = new TranslateTransition(Duration.seconds(0.6), npcView);
+                enter.setToX(0);
+                enter.setInterpolator(Interpolator.EASE_OUT);
+                enter.setOnFinished(ev -> {
+                    if (currentVoter.hasCertificate && certificateOnDesk != null) {
+                        certificateOnDesk.setVisible(true);
+                    }
+                    System.out.println("Nowy klient: " + currentVoter.document.lastName);
+                });
+
+                enter.play();
+
+            } else {
+                System.out.println("KONIEC GRY!");
+                currentVoter = null;
+                updateVisuals();
+                showEndGameSummary();
+            }
+        });
+
+        leave.play();
+    }
     private void handleDecision(String playerAction) {
         if (currentVoter == null) return;
-        boolean success = false;
-        String msg = "";
 
-        if (playerAction.equals("ADD_AND_ISSUE")) {
-            if (currentVoter.action.equals("ADD_AND_ISSUE")) {
-                success = true;
-                RegisterObj r = currentVoter.register;
-                String fullAddr = r.city + ", " + r.address;
-                String fullName = r.lastName + " " + r.firstName;
+        int score = 0;
+        List<String> logs = new ArrayList<>();
+        boolean correctDecision = false;
 
-                TabletEntry newEntry = new TabletEntry(fullAddr, fullName, r.pesel, true, currentVoter); // true -> hasVoted (bo wydajemy)
-                newEntry.signedByPlayer = true;
+        String expectedAction = currentVoter.action;
 
-                tabletDatabase.add(newEntry);
-                System.out.println("Dopisano wyborcę do spisu!");
-            } else {
-                msg = "BŁĄD: Tej osoby nie można dopisać!";
+        // --- 1. WERYFIKACJA GŁÓWNEJ DECYZJI ---
+
+        if (expectedAction.equals("ADD_AND_ISSUE")) {
+            if (playerAction.equals("ISSUE_CARD") && currentActions.addedToRegister) {
+                correctDecision = true;
             }
         }
-        else if (playerAction.equals(currentVoter.action)) {
-            success = true;
-        } else {
-            msg = "BŁĄD! Oczekiwano: " + currentVoter.action;
+        else if (playerAction.equals(expectedAction)) {
+            correctDecision = true;
         }
 
-        System.out.println(success ? "SUKCES!" : msg);
-        updateVisuals();
+        // --- 2. BAZA PUNKTOWA ---
+
+        if (correctDecision) {
+            score = 1000;
+            logs.add("Prawidłowa decyzja +1000");
+        } else {
+            score = 0; // Startujemy z 0 (kary sprawią, że będzie ujemny)
+            logs.add("BŁĘDNA DECYZJA (Baza 0)");
+        }
+
+        // A. WYDANIE KARTY (ISSUE_CARD)
+        if (expectedAction.equals("ISSUE_CARD")) {
+            if (!currentActions.checkedID) { score -= 200; logs.add("Brak sprawdz. dowodu -200"); }
+            if (!currentActions.askedAddress) { score -= 200; logs.add("Brak zapytania o adres -200"); }
+            if (!currentActions.checkedTablet) { score -= 200; logs.add("Brak podpisu w spisie -200"); }
+
+            if (currentActions.calledGmina) {
+                score -= 500;
+                logs.add("Niepotrzebny tel. do Gminy -500");
+            }
+        }
+        // B. DOPISANIE I WYDANIE (ADD_AND_ISSUE)
+        else if (expectedAction.equals("ADD_AND_ISSUE")) {
+            if (!currentActions.checkedID) { score -= 200; logs.add("Brak sprawdz. dowodu -200"); }
+            if (!currentActions.askedAddress) { score -= 200; logs.add("Brak zapytania o adres -200"); }
+            if (!currentActions.addedToRegister) { score -= 200; logs.add("Brak dopisania do spisu -200"); }
+            if (!currentActions.checkedTablet) { score -= 200; logs.add("Brak podpisu w spisie -200");
+            }
+            // C. ODMOWA: NIELETNI / BRAK PRAW (REFUSE_AGE, REFUSE_NO_RIGHTS)
+            else if (expectedAction.equals("REFUSE_AGE") || expectedAction.equals("REFUSE_NO_RIGHTS")) {
+                if (!currentActions.checkedID) { score -= 200; logs.add("Brak sprawdz. dowodu -200"); }
+                if (correctDecision) {
+                    score += 200;
+                    logs.add("BONUS: Prawidłowa odmowa (bez dzwonienia) +200");
+                }
+            }
+        }
+        // D. ODMOWA: SPIS / OBWÓD (REFUSE_SPECIAL_REGISTER, REFUSE_WRONG_PRECINCT)
+        else if (expectedAction.equals("REFUSE_SPECIAL") || expectedAction.equals("REFUSE_SPECIAL_REGISTER") ||
+                expectedAction.equals("REFUSE_DISTRICT") || expectedAction.equals("REFUSE_WRONG_PRECINCT")) {
+
+            if (!currentActions.checkedID) { score -= 200; logs.add("Brak sprawdz. dowodu -200"); }
+            if (!currentActions.askedAddress) { score -= 200; logs.add("Brak zapytania o adres -200"); }
+
+            if (!currentActions.calledGmina && expectedAction.equals("REFUSE_SPECIAL") ) {
+                score -= 500;
+                logs.add("KARA: Brak obowiązkowego telefonu do Gminy -500");
+            } else {
+                logs.add("Weryfikacja w Gminie wykonana (OK)");
+            }
+        }
+
+        // E. POLICJA (CALL_POLICE)
+        else if (expectedAction.equals("CALL_POLICE")) {
+            if (!currentActions.checkedID) { score -= 200; logs.add("Brak sprawdz. dowodu -200"); }
+            if (!currentActions.askedAddress) { score -= 200; logs.add("Brak zapytania o adres -200"); }
+        }
+
+        totalScore += score;
+        String name = currentVoter.document.lastName + " " + currentVoter.document.firstName;
+        dailyReport.add(new ScoreEntry(name, score, logs));
+
+        System.out.println("ZAKOŃCZONO: " + name + " | Wynik: " + score);
+
+        PauseTransition delay = new PauseTransition(Duration.seconds(1.0));
+        delay.setOnFinished(e -> nextVoter());
+        delay.play();
+    }
+    private void handleAddToRegister() {
+        if (currentVoter == null) return;
+        boolean exists = tabletDatabase.stream()
+                .anyMatch(e -> e.pesel.equals(currentVoter.document.pesel));
+
+        if (exists) {
+            System.out.println("Ta osoba już jest w spisie!");
+            return;
+        }
+        RegisterObj r = currentVoter.register;
+        String fullAddr = r.city + ", " + r.address;
+        String fullName = r.lastName + " " + r.firstName;
+
+        TabletEntry newEntry = new TabletEntry(
+                fullAddr,
+                fullName,
+                currentVoter.document.pesel,
+                false,
+                currentVoter
+        );
+        tabletDatabase.add(newEntry);
+        if (tabletOverlay.isVisible()) {
+            refreshRegisterList();
+        }
+        currentActions.addedToRegister = true;
+        System.out.println("Dopisano wyborcę do spisu na tablecie.");
+    }
+    private void handleCall() {
+        String input = phoneScreenText.getText();
+
+        if (input.equals("111")) {
+            if (currentVoter != null && currentVoter.register != null) {
+                String info = currentVoter.register.gminaInfo;
+                currentActions.calledGmina = true;
+                System.out.println("LOG: Telefon do gminy wykonany.");
+                if (info != null && !info.isEmpty()) {
+                    phoneScreenText.setText(info);
+                } else {
+                    if (currentVoter.register.isInRegister) {
+                        phoneScreenText.setText("FIGURUJE W SPISIE");
+                    } else {
+                        phoneScreenText.setText("BRAK W BAZIE");
+                    }
+                }
+            } else {
+                phoneScreenText.setText("BRAK DANYCH");
+            }
+        }
+        else if (input.equals("997") || input.equals("112")) {
+            phoneScreenText.setText("WEZWANIE...");
+            PauseTransition pause = new PauseTransition(Duration.seconds(0.7));
+            pause.setOnFinished(e -> triggerPoliceAction());
+            pause.play();
+        }
+        else {
+            phoneScreenText.setText("NIE MA TAKIEGO NUMERU");
+        }
     }
 }

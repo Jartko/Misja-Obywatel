@@ -3,12 +3,12 @@
     "id": 1,
     "action": "ISSUE_CARD",
     "hasCertificate": false,
-    "personImage": "npc_jan.png",
+    "personImage": "npc_szymon.png",
     "document": {
       "firstName": "Jan", "lastName": "KOWALSKI",
       "pesel": "85021212345",
       "birthDate": "12.02.1985",
-      "photo": "npc_jan.png"
+      "photo": "npc_szymon.png"
     },
     "register": {
       "isInRegister": true,
@@ -23,13 +23,13 @@
     "id": 2,
     "action": "REFUSE_NO_RIGHTS",
     "hasCertificate": false,
-    "personImage": "npc_nastolatek.png",
+    "personImage": "npc_szymon.png",
     "document": {
       "firstName": "Kamil",
       "lastName": "MŁODY",
       "pesel": "10250512345",
       "birthDate": "05.05.2010",
-      "photo": "npc_nastolatek.png"
+      "photo": "npc_szymon.png"
     },
     "register": {
       "isInRegister": false,
@@ -40,13 +40,13 @@
     "id": 3,
     "action": "REFUSE_SPECIAL_REGISTER",
     "hasCertificate": false,
-    "personImage": "npc_marek.png",
+    "personImage": "npc_szymon.png",
     "document": {
       "firstName": "Marek",
       "lastName": "PACJENT",
       "pesel": "70010188888",
       "birthDate": "01.01.1970",
-      "photo": "npc_marek.png"
+      "photo": "npc_szymon.png"
     },
     "register": {
       "isInRegister": false,
@@ -58,15 +58,15 @@
     "id": 4,
     "action": "REFUSE_WRONG_PRECINCT",
     "hasCertificate": false,
-    "personImage": "npc_anna.png",
+    "personImage": "npc_szymon.png",
     "document": {
       "firstName": "Anna", "lastName": "OBCY", "pesel": "92010199999",
       "birthDate": "01.01.1992",
-      "photo": "npc_anna.png"
+      "photo": "npc_szymon.png"
     },
     "register": {
       "isInRegister": false,
-      "gminaInfo": "BRAK W TYM OBWODZIE",
+      "gminaInfo": "SPOZA OBWODU",
       "firstName": "Anna", "lastName": "OBCY", "pesel": "92010199999", "address": "ul. Inna 4", "city": "Kraków"
     }
   },
@@ -74,16 +74,16 @@
     "id": 5,
     "action": "ADD_AND_ISSUE",
     "hasCertificate": true,
-    "personImage": "npc_turysta.png",
+    "personImage": "npc_szymon.png",
     "document": {
       "firstName": "Tomasz", "lastName": "TURYSTA",
       "pesel": "88080833333",
       "birthDate": "08.08.1988",
-      "photo": "npc_turysta.png"
+      "photo": "npc_szymon.png"
     },
     "register": {
       "isInRegister": false,
-      "gminaInfo": "BRAK (MA ZAŚWIADCZENIE?)",
+      "gminaInfo": "SPOZA GMINY",
       "firstName": "Tomasz", "lastName": "TURYSTA", "pesel": "88080833333",
       "address": "ul. Wakacyjna 10",
       "city": "Gdańsk"
@@ -93,12 +93,12 @@
     "id": 6,
     "action": "CALL_POLICE",
     "hasCertificate": false,
-    "personImage": "npc_oszust.png",
+    "personImage": "npc_szymon.png",
     "document": {
       "firstName": "Piotr", "lastName": "ZŁY",
       "pesel": "80010155555",
       "birthDate": "01.01.1980",
-      "photo": "npc_fake_photo.png"
+      "photo": "npc_szymon.png"
     },
     "register": {
       "isInRegister": true,
@@ -114,12 +114,12 @@
     "id": 7,
     "action": "CALL_POLICE",
     "hasCertificate": true,
-    "personImage": "npc_oszustka.png",
+    "personImage": "npc_szymon.png",
     "document": {
       "firstName": "Karolina", "lastName": "FAŁSZ",
       "pesel": "00000000000",
       "birthDate": "05.05.1995",
-      "photo": "npc_oszustka.png"
+      "photo": "npc_szymon.png"
     },
     "register": {
       "isInRegister": true,

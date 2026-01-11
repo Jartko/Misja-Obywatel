@@ -6,25 +6,33 @@
 
 <AnchorPane xmlns:fx="http://javafx.com/fxml"
             fx:controller="controllers.MenuController"
-            prefWidth="1920" prefHeight="1080">
+            stylesheets="@/style.css"
+            prefWidth="1024" prefHeight="768"
+            styleClass="root">
 
-    <VBox spacing="60" alignment="CENTER" prefWidth="1920" prefHeight="1080"
+    <VBox spacing="40" alignment="CENTER"
           AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0"
           AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
-        <VBox alignment="CENTER">
-            <Label text="Misja Obywatel"
-                   style="-fx-font-size: 72px; -fx-font-weight: bold;"/>
-            <Label text="Czas wyborów"
-                   style="-fx-font-size: 36px; -fx-opacity: 0.8;"/>
-        </VBox>
-        <VBox spacing="20" alignment="CENTER">
-            <Button text="Rozpocznij grę" prefWidth="300" prefHeight="60"
-                    style="-fx-font-size: 20px;" fx:id="rozpocznijGreButton"/>
-            <Button text="Tabela wyników" prefWidth="300" prefHeight="60"
-                    style="-fx-font-size: 20px;" fx:id="tabelaWynikowButton"/>
-            <Button text="Wyjście" prefWidth="300" prefHeight="60"
-                    style="-fx-font-size: 20px;" fx:id="wyjscieButton"/>
+
+        <VBox alignment="CENTER" spacing="10">
+            <Label text="Misja Obywatel" styleClass="title"/>
+
+            <Label text="Czas wyborów" styleClass="subtitle"/>
         </VBox>
 
+        <VBox spacing="25" alignment="CENTER">
+            <Button text="Rozpocznij grę" prefWidth="400" prefHeight="70"
+                    fx:id="rozpocznijGreButton"/>
+
+            <Button text="Tabela wyników" prefWidth="400" prefHeight="70"
+                    fx:id="tabelaWynikowButton"/>
+
+            <Button text="Wyjście" prefWidth="400" prefHeight="70"
+                    fx:id="wyjscieButton"/>
+
+        </VBox>
+        <VBox alignment="CENTER" spacing="10">
+            <Label text="Artur Parchem s197710" styleClass="subtitle"/>
+        </VBox>
     </VBox>
 </AnchorPane>

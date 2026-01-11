@@ -1,5 +1,7 @@
 package controllers;
 
+import game.LiczenieGlosowScene;
+import game.ScoreboardScene;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.stage.Stage;
@@ -24,10 +26,14 @@ public class MenuController {
     private void startGame(javafx.event.ActionEvent e) {
         Stage stage = (Stage) rozpocznijGreButton.getScene().getWindow();
 
-        boolean debugEtap2 = true; // <-- ustaw na true jeśli chcesz zacząć od GlosowanieScene
-
-        if (debugEtap2) {
-            GlosowanieScene glosowanie = new GlosowanieScene();
+        boolean debugEtap2 = false;
+        boolean debugEtap3 = false;
+        if(debugEtap3){
+            LiczenieGlosowScene liczenie = new LiczenieGlosowScene(0,0);
+            liczenie.start(stage);
+        }
+        else if (debugEtap2) {
+            GlosowanieScene glosowanie = new GlosowanieScene(0);
             glosowanie.start(stage);
         } else {
             GameScene gameScene = new GameScene();
@@ -36,7 +42,9 @@ public class MenuController {
     }
 
     private void showScoreboard(javafx.event.ActionEvent e) {
-        System.out.println("Otwarcie tabeli wyników — dodamy później");
+        ScoreboardScene scoreboard = new ScoreboardScene();
+        Stage stage = (Stage) tabelaWynikowButton.getScene().getWindow();
+        scoreboard.start(stage);
     }
 
     private void exit() {

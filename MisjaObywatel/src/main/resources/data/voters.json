@@ -76,14 +76,14 @@
     "hasCertificate": false,
     "personImage": "npc_wladek.png",
     "document": {
-      "firstName": "Władysław", "lastName": "KOSMYK-KAMYK", "pesel": "92010199999",
-      "birthDate": "01.01.1992",
+      "firstName": "Władysław", "lastName": "KOSMYK-KAMYK", "pesel": "81081078876",
+      "birthDate": "10.08.1981",
       "photo": "npc_wladek.png"
     },
     "register": {
       "isInRegister": true,
-      "gminaInfo": "SPOZA OBWODU",
-      "firstName": "Anna", "lastName": "OBCY", "pesel": "92010199999", "address": "ul. Inna 4", "city": "Kraków"
+      "gminaInfo": "FIGURUJE W SPISIE",
+      "firstName": "Władysław", "lastName": "KOSMYK-KAMYK", "pesel": "81081078876", "address": "ul. Puławska 4a", "city": "Warszawa"
     }
   },
   {

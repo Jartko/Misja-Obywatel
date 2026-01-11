@@ -33,9 +33,10 @@ import javafx.animation.TranslateTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.Timeline;
 import javafx.animation.KeyFrame;
-
 public class GlosowanieScene {
-
+    public GlosowanieScene(int scoreStage1) {
+        this.scoreStage1 = scoreStage1;
+    }
     public static class VoterData {
         public int id;
         public String action;
@@ -110,6 +111,7 @@ public class GlosowanieScene {
         }
     }
 
+    private int scoreStage1;
     private Pane root;
     private Scene scene;
     private Stage primaryStage;
@@ -133,6 +135,7 @@ public class GlosowanieScene {
     private PlayerActions currentActions = new PlayerActions();
     private int totalScore = 0;
     private List<ScoreEntry> dailyReport = new ArrayList<>();
+    // ---  Dialogi ---
 
     public void start(Stage stage) {
         this.primaryStage = stage;
@@ -155,7 +158,7 @@ public class GlosowanieScene {
         npcView.setFitHeight(700);
         npcView.setPreserveRatio(true);
         npcView.setLayoutX(230);
-        npcView.setLayoutY(155);
+        npcView.setTranslateY(height / 2 -240);
 
         // --- PRZEDMIOTY ---
         ImageView karta = createItem("/images/karta.png", 100, 130, 75, 585);
@@ -344,7 +347,13 @@ public class GlosowanieScene {
 
             String signText = "";
             if (entry.hasVoted || entry.signedByPlayer) {
-                signText = entry.linkedVoter.register.lastName;
+                String rawLastName = entry.linkedVoter.register.lastName;
+                if (rawLastName != null && rawLastName.contains("-")) {
+                    signText = rawLastName.split("-")[0];
+                } else {
+                    signText = rawLastName;
+                }
+                // ---------------------------------------------
             }
 
             HBox row = createRowUI(
@@ -873,67 +882,6 @@ public class GlosowanieScene {
     }
 
     // --- PUNKTACJA i DECYZJE ---
-    private void showEndGameSummary() {
-        root.getChildren().forEach(node -> node.setVisible(false));
-        StackPane summaryOverlay = new StackPane();
-        summaryOverlay.setPrefSize(root.getWidth(), root.getHeight());
-        summaryOverlay.setStyle("-fx-background-color: rgba(44, 62, 80, 0.95);");
-
-        VBox content = new VBox(20);
-        content.setAlignment(Pos.CENTER);
-        content.setMaxSize(800, 600);
-
-        Text title = new Text("RAPORT KOŃCOWY");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 36));
-        title.setFill(Color.WHITE);
-
-        Text scoreText = new Text("CAŁKOWITY WYNIK: " + totalScore + " pkt");
-        scoreText.setFont(Font.font("Arial", FontWeight.BOLD, 24));
-        scoreText.setFill(Color.GOLD);
-
-
-        VBox list = new VBox(10);
-        list.setStyle("-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 5;");
-
-        ScrollPane scroll = new ScrollPane(list);
-        scroll.setFitToWidth(true);
-        scroll.setPrefHeight(400);
-
-        for (ScoreEntry entry : dailyReport) {
-            VBox entryBox = new VBox(5);
-            entryBox.setStyle("-fx-border-color: #bdc3c7; -fx-border-width: 0 0 1 0; -fx-padding: 5;");
-
-            HBox header = new HBox(10);
-            Text tName = new Text(entry.voterName);
-            tName.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-
-            Text tScore = new Text(String.valueOf(entry.score));
-            tScore.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-            tScore.setFill(entry.score > 0 ? Color.GREEN : Color.RED);
-
-            Region r = new Region(); HBox.setHgrow(r, Priority.ALWAYS);
-            header.getChildren().addAll(tName, r, tScore);
-
-            entryBox.getChildren().add(header);
-
-            // Detale (powody punktów)
-            for (String detail : entry.details) {
-                Text tDet = new Text(" • " + detail);
-                tDet.setFont(Font.font("Arial", 12));
-                tDet.setFill(Color.DARKGRAY);
-                entryBox.getChildren().add(tDet);
-            }
-            list.getChildren().add(entryBox);
-        }
-        Button exitBtn = new Button("ZAKOŃCZ PRACĘ");
-        exitBtn.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18;");
-        exitBtn.setOnAction(e -> primaryStage.close());
-
-        content.getChildren().addAll(title, scoreText, scroll, exitBtn);
-        summaryOverlay.getChildren().add(content);
-
-        root.getChildren().add(summaryOverlay);
-    }
     private void nextVoter() {
         if (dowodOverlay != null) dowodOverlay.setVisible(false);
         if (certificateOnDesk != null) certificateOnDesk.setVisible(false);
@@ -945,7 +893,7 @@ public class GlosowanieScene {
         leave.setOnFinished(e -> {
             currentVoterIndex++;
             currentActions.reset();
-            if (currentVoterIndex < allVotersScenarios.size()) {
+            if (currentVoterIndex < 8) {
                 currentVoter = allVotersScenarios.get(currentVoterIndex);
                 selectedInTablet = null;
                 if (phoneScreenText != null) phoneScreenText.setText("");
@@ -1119,5 +1067,72 @@ public class GlosowanieScene {
         else {
             phoneScreenText.setText("NIE MA TAKIEGO NUMERU");
         }
+    }
+    private void showEndGameSummary() {
+        root.getChildren().forEach(node -> node.setVisible(false));
+        StackPane summaryOverlay = new StackPane();
+        summaryOverlay.setPrefSize(root.getWidth(), root.getHeight());
+        summaryOverlay.setStyle("-fx-background-color: rgba(44, 62, 80, 0.95);");
+
+        VBox content = new VBox(20);
+        content.setAlignment(Pos.CENTER);
+        content.setMaxSize(800, 600);
+
+        Text title = new Text("RAPORT KOŃCOWY");
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 36));
+        title.setFill(Color.WHITE);
+
+        Text scoreText = new Text("CAŁKOWITY WYNIK: " + totalScore + " pkt");
+        scoreText.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+        scoreText.setFill(Color.GOLD);
+
+
+        VBox list = new VBox(10);
+        list.setStyle("-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 5;");
+
+        ScrollPane scroll = new ScrollPane(list);
+        scroll.setFitToWidth(true);
+        scroll.setPrefHeight(400);
+
+        for (ScoreEntry entry : dailyReport) {
+            VBox entryBox = new VBox(5);
+            entryBox.setStyle("-fx-border-color: #bdc3c7; -fx-border-width: 0 0 1 0; -fx-padding: 5;");
+
+            HBox header = new HBox(10);
+            Text tName = new Text(entry.voterName);
+            tName.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+
+            Text tScore = new Text(String.valueOf(entry.score));
+            tScore.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+            tScore.setFill(entry.score > 0 ? Color.GREEN : Color.RED);
+
+            Region r = new Region(); HBox.setHgrow(r, Priority.ALWAYS);
+            header.getChildren().addAll(tName, r, tScore);
+
+            entryBox.getChildren().add(header);
+
+            // Detale
+            for (String detail : entry.details) {
+                Text tDet = new Text(" • " + detail);
+                tDet.setFont(Font.font("Arial", 12));
+                tDet.setFill(Color.DARKGRAY);
+                entryBox.getChildren().add(tDet);
+            }
+            list.getChildren().add(entryBox);
+        }
+        Button exitBtn = new Button("ZAKOŃCZ PRACĘ");
+        exitBtn.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18;");
+        exitBtn.setOnAction(e -> primaryStage.close());
+
+        Button nextStageBtn = new Button("PRZEJDŹ DO LICZENIA GŁOSÓW");
+        nextStageBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18;");
+        nextStageBtn.setOnAction(e -> {
+            LiczenieGlosowScene stage3 = new LiczenieGlosowScene(scoreStage1,totalScore);
+            stage3.start(primaryStage);
+        });
+        content.getChildren().addAll(title, scoreText, scroll, nextStageBtn);
+        summaryOverlay.getChildren().add(content);
+
+        root.getChildren().add(summaryOverlay);
     }
 }

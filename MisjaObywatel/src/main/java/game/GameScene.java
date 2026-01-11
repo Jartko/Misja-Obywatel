@@ -80,11 +80,17 @@ public class GameScene {
     };
 
     private final String[] endingLinesTemplate = {
-            "Świetna robota! Lokal wygląda profesjonalnie.",
-            "Urna stoi, kabiny gotowe, ogłoszenia wiszą.",
-            "Właśnie otwieramy drzwi dla wyborców.",
+            "Doskonała robota! Lokal jest przygotowany wzorowo. Urna zaplombowana, kabiny gotowe, ogłoszenia wiszą.",
+            "Zanim otworzymy drzwi, musisz poznać procedury bezpieczeństwa.",
+            "Do GMINY (111) dzwonisz w sprawach urzędowych: gdy wyborcy nie ma w spisie, a twierdzi, że tu mieszka.",
+            "Na POLICJĘ (997) dzwonisz TYLKO przy próbie oszustwa: gdy zdjęcie w dowodzie to nie ta osoba, lub dokument zawiera inne danie niż w spise.",
+            "Po zamknięciu lokalu czeka nas Liczenie. Musisz odróżnić Ważną Kartę od Ważnego Głosu.",
+            "WAŻNA KARTA musi posiadać czerwoną pieczątkę komisji. Karta bez pieczątki jest nieważna, niezależnie od tego, co na niej napisano.",
+            "WAŻNY GŁOS to taki, gdzie na ważnej karcie postawiono dokładnie jeden znak 'X' w kratce. Dwa krzyżyki, pusta karta lub bazgroły = głos nieważny.",
+            "Zapamiętałeś? To do dzieła. Zobaczmy Twój wynik za przygotowanie sali...",
             "SCORE_PLACEHOLDER"
     };
+    // -----------------------------------------------
     private List<String> currentDialogueLines;
 
     // --- Kabiny ---
@@ -543,7 +549,7 @@ public class GameScene {
     }
     private void goToGlosowanieScene() {
         if (timer != null) timer.stop();
-        new GlosowanieScene().start(primaryStage);
+        new GlosowanieScene(finalScore).start(primaryStage);
     }
 
     // --- MOVEMENT ---

@@ -12,7 +12,7 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/scenes/menu.fxml"));
-        Scene scene = new Scene(loader.load(), 1024, 768); //USTAWIĆ NA 1920x1080 w finalnej wersji!
+        Scene scene = new Scene(loader.load(), 1024, 768);
         stage.setTitle("Misja Obywatel");
         stage.setScene(scene);
         stage.setFullScreen(false);
